@@ -1,0 +1,9 @@
+nbproject
+._*
+.~lock.*
+.idea
+.idea
+.project
+.settings
+venv/
+.ipynb_checkpoints/*

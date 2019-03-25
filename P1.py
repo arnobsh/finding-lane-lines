@@ -150,8 +150,7 @@ os.listdir("test_images/")
 # then save them to the test_images_output directory.
 def connecting_lines(image):
     """
-    An image processing pipeline which will output
-    an image with the lane lines annotated.
+    An function to connect the different section of lane lines
     """
     height = image.shape[0]
     width = image.shape[1]
@@ -255,23 +254,23 @@ def processBulkImages(input_dir, output_dir):
             # convert image to grayscale.
 
             gray_temp_image = grayscale(original_image)  # grayscale conversion
-
+            mpimg.imsave(os.path.join("test_images_output/greyscale_images/", filename), gray_temp_image)
             # Define a kernel size for Gaussian smoothing / blurring
             # Note: this step is optional as cv2.Canny() applies a 5x5 Gaussian internally
             kernel_size = 7
             blur_gray = gaussian_blur(gray_temp_image, kernel_size)
-            plt.show()
+            mpimg.imsave(os.path.join("test_images_output/gaussian_blur/", filename), blur_gray)
             # Define parameters for Canny and run it
             low_threshold = 50
             high_threshold = 150
             output_image_edges = canny(blur_gray, low_threshold, high_threshold)
-
+            mpimg.imsave(os.path.join("test_images_output/canny_edge_detection/", filename), output_image_edges)
             # This time we are defining a four sided polygon to mask
             imshape = original_image.shape
             vertices = np.array([[(0, imshape[0]), (480, 315), (490, 315), (imshape[1], imshape[0])]], dtype=np.int32)
             # Next we'll create a masked edges image using fillPoly()
             masked_tmp_image = region_of_interest(output_image_edges, vertices)
-
+            mpimg.imsave(os.path.join("test_images_output/region_of_interest/", filename), masked_tmp_image)
             # Run Hough on edge detected image
             # Output "lines" is an array containing endpoints of detected line segments
             rho = 1  # distance resolution in pixels of the Hough grid
@@ -282,13 +281,14 @@ def processBulkImages(input_dir, output_dir):
 
             lines = hough_lines(masked_tmp_image, rho, theta, threshold,
                                 min_line_length, max_line_gap)
+            mpimg.imsave(os.path.join("test_images_output/hough_transform/", filename), lines)
             # extrapolate the lines from the image
             image_with_connected_lines = connecting_lines(original_image)
             # plt.imshow(image_with_connected_lines)
-
+            mpimg.imsave(os.path.join("test_images_output/connecting_lines/", filename), image_with_connected_lines)
             # # Draw the lines on the edge image
             output_image = weighted_img(image_with_connected_lines, original_image)
-            mpimg.imsave(os.path.join(output_dir, filename), output_image)
+            mpimg.imsave(os.path.join(output_dir+"final_images/", filename), output_image)
         else:
             continue
 
@@ -306,7 +306,7 @@ def process_image(image):
     # Note: this step is optional as cv2.Canny() applies a 5x5 Gaussian internally
     kernel_size = 7
     blur_gray = gaussian_blur(gray_temp_image, kernel_size)
-    plt.show()
+
     # Define parameters for Canny and run it
     low_threshold = 50
     high_threshold = 150
@@ -346,10 +346,11 @@ def process_videos(input_dir, output_dir):
             white_clip.write_videofile(os.path.join(output_dir,filename), audio=False)
         else:
             continue
+
 # iterate over files
-# input_directory = "test_images/"
-# output_directory = "test_images_output/"
-# processImages(input_directory, output_directory)
+input_directory = "test_images/"
+output_directory = "test_images_output/"
+processBulkImages(input_directory, output_directory)
 
 def play_video(video):
     # Create a VideoCapture object and read from input file
@@ -385,16 +386,16 @@ def play_video(video):
     cv2.destroyAllWindows()
 
 # for video files
-white_output = 'test_videos_output/solidWhiteRight.mp4'
+# white_output = 'test_videos_output/solidWhiteRight.mp4'
 ## To speed up the testing process you may want to try your pipeline on a shorter subclip of the video
 ## To do so add .subclip(start_second,end_second) to the end of the line below
 ## Where start_second and end_second are integer values representing the start and end of the subclip
 ## You may also uncomment the following line for a subclip of the first 5 seconds
 # clip1 = VideoFileClip("test_videos/solidWhiteRight.mp4").subclip(0,5)
-clip1 = VideoFileClip("test_videos/solidWhiteRight.mp4")
-white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
+# clip1 = VideoFileClip("test_videos/solidWhiteRight.mp4")
+# white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
 # %time white_clip.write_videofile(white_output, audio=False)
-white_clip.write_videofile(white_output, audio=False)
+# white_clip.write_videofile(white_output, audio=False)
 
 # process all videos, by single function
 # video_input_dir = 'test_videos/';
