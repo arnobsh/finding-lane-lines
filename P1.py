@@ -119,7 +119,7 @@ def weighted_img(img, initial_img, α=0.8, β=1., γ=0.):
     """
     return cv2.addWeighted(initial_img, α, img, β, γ)
 
-
+# get the vertices of the image
 def get_vertices_for_img(img):
     img_shape = img.shape
     height = img_shape[0]
@@ -145,8 +145,11 @@ def get_vertices_for_img(img):
 
 os.listdir("test_images/")
 
+# get the cropped image from the region of interest
+def get_cropped_image(image,vertices):
+    result_image = region_of_interest( image, vertices )
+    return result_image
 
-# TODO: Build your pipeline that will draw lane lines on the test_images
 # then save them to the test_images_output directory.
 def connecting_lines(image):
     """
@@ -159,16 +162,11 @@ def connecting_lines(image):
         (width / 2, height / 2),
         (width, height),
     ]
-    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    cannyed_image = cv2.Canny(gray_image, 100, 200)
+    gray_image = grayscale(image)
+    canny_image = canny(gray_image, 100, 200)
 
-    cropped_image = region_of_interest(
-        cannyed_image,
-        np.array(
-            [region_of_interest_vertices],
-            np.int32
-        ),
-    )
+    vertices = np.array( [region_of_interest_vertices], np.int32)
+    cropped_image = get_cropped_image( canny_image,vertices)
 
     lines = cv2.HoughLinesP(
         cropped_image,
@@ -180,11 +178,47 @@ def connecting_lines(image):
         maxLineGap=25
     )
 
+    left_x_end, left_x_start, max_y, min_y, right_x_end, right_x_start = calculating_slopes(image, lines)
+
+    thickness = 5
+    color = [255, 0, 0]
+    lines = [[
+        [left_x_start, max_y, left_x_end, min_y],
+        [right_x_start, max_y, right_x_end, min_y],
+    ]]
+    # Create a blank image that matches the original in size.
+    line_img = generate_blank_image(np.copy(image))
+    # Loop over all lines and draw them on the blank image.
+    resulted_line_image = populate_line_image(color, line_img, lines, thickness)
+
+
+    return resulted_line_image
+
+# populating line image
+def populate_line_image(color, line_img, lines, thickness):
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
+
+    return line_img
+
+# generating line image
+def generate_blank_image(img):
+    return np.zeros(
+        (
+            img.shape[0],
+            img.shape[1],
+            3
+        ),
+        dtype=np.uint8,
+    )
+
+# calculating the slope of the images
+def calculating_slopes(image, lines):
     left_line_x = []
     left_line_y = []
     right_line_x = []
     right_line_y = []
-
     for line in lines:
         for x1, y1, x2, y2 in line:
             slope = (y2 - y1) / (x2 - x1)
@@ -196,49 +230,23 @@ def connecting_lines(image):
             else:
                 right_line_x.extend([x1, x2])
                 right_line_y.extend([y1, y2])
-
     min_y = int(image.shape[0] * (3 / 5))
     max_y = int(image.shape[0])
-    poly_left = np.poly1d(np.polyfit(
-        left_line_y,
-        left_line_x,
-        deg=1
-    ))
-
+    poly_left = generate_poly(left_line_x, left_line_y)
     left_x_start = int(poly_left(max_y))
     left_x_end = int(poly_left(min_y))
-
-    poly_right = np.poly1d(np.polyfit(
-        right_line_y,
-        right_line_x,
-        deg=1
-    ))
-
+    poly_right = generate_poly(right_line_x, right_line_y)
     right_x_start = int(poly_right(max_y))
     right_x_end = int(poly_right(min_y))
-    img = np.copy(image)
-    thickness = 5
-    color = [255, 0, 0]
-    lines = [[
-        [left_x_start, max_y, left_x_end, min_y],
-        [right_x_start, max_y, right_x_end, min_y],
-    ]]
-    # Create a blank image that matches the original in size.
-    line_img = np.zeros(
-        (
-            img.shape[0],
-            img.shape[1],
-            3
-        ),
-        dtype=np.uint8,
-    )
-    # Loop over all lines and draw them on the blank image.
-    for line in lines:
-        for x1, y1, x2, y2 in line:
-            cv2.line(line_img, (x1, y1), (x2, y2), color, thickness)
+    return left_x_end, left_x_start, max_y, min_y, right_x_end, right_x_start
 
-
-    return line_img
+# generate the polygon
+def generate_poly(X, Y):
+    return np.poly1d(np.polyfit(
+        Y,
+        X,
+        deg=1
+    ))
 
 
 # function to save the output images into directory
@@ -254,23 +262,23 @@ def processBulkImages(input_dir, output_dir):
             # convert image to grayscale.
 
             gray_temp_image = grayscale(original_image)  # grayscale conversion
-            mpimg.imsave(os.path.join("test_images_output/greyscale_images/", filename), gray_temp_image)
+            mpimg.imsave(os.path.join(output_dir + "greyscale_images/", filename), gray_temp_image)
             # Define a kernel size for Gaussian smoothing / blurring
             # Note: this step is optional as cv2.Canny() applies a 5x5 Gaussian internally
             kernel_size = 7
             blur_gray = gaussian_blur(gray_temp_image, kernel_size)
-            mpimg.imsave(os.path.join("test_images_output/gaussian_blur/", filename), blur_gray)
+            mpimg.imsave(os.path.join(output_dir + "gaussian_blur/", filename), blur_gray)
             # Define parameters for Canny and run it
             low_threshold = 50
             high_threshold = 150
             output_image_edges = canny(blur_gray, low_threshold, high_threshold)
-            mpimg.imsave(os.path.join("test_images_output/canny_edge_detection/", filename), output_image_edges)
+            mpimg.imsave(os.path.join(output_dir + "canny_edge_detection/", filename), output_image_edges)
             # This time we are defining a four sided polygon to mask
             imshape = original_image.shape
             vertices = np.array([[(0, imshape[0]), (480, 315), (490, 315), (imshape[1], imshape[0])]], dtype=np.int32)
             # Next we'll create a masked edges image using fillPoly()
             masked_tmp_image = region_of_interest(output_image_edges, vertices)
-            mpimg.imsave(os.path.join("test_images_output/region_of_interest/", filename), masked_tmp_image)
+            mpimg.imsave(os.path.join(output_dir + "region_of_interest/", filename), masked_tmp_image)
             # Run Hough on edge detected image
             # Output "lines" is an array containing endpoints of detected line segments
             rho = 1  # distance resolution in pixels of the Hough grid
@@ -281,14 +289,14 @@ def processBulkImages(input_dir, output_dir):
 
             lines = hough_lines(masked_tmp_image, rho, theta, threshold,
                                 min_line_length, max_line_gap)
-            mpimg.imsave(os.path.join("test_images_output/hough_transform/", filename), lines)
+            mpimg.imsave(os.path.join(output_dir + "hough_transform/", filename), lines)
             # extrapolate the lines from the image
             image_with_connected_lines = connecting_lines(original_image)
             # plt.imshow(image_with_connected_lines)
-            mpimg.imsave(os.path.join("test_images_output/connecting_lines/", filename), image_with_connected_lines)
+            mpimg.imsave(os.path.join(output_dir + "connecting_lines/", filename), image_with_connected_lines)
             # # Draw the lines on the edge image
             output_image = weighted_img(image_with_connected_lines, original_image)
-            mpimg.imsave(os.path.join(output_dir+"final_images/", filename), output_image)
+            mpimg.imsave(os.path.join(output_dir + "final_images/", filename), output_image)
         else:
             continue
 

@@ -128,14 +128,14 @@ To extrapolate the line from the image , we first identify the slope of the left
 
 
 [//]: # (Image References)
-[image1]: ./input.jpg "Input Image"
-[image2]: ./final_output.jpg "Final Output Image"
-[image3]: ./gaussian_blur.jpg "Gaussian Blur"
-[image4]: ./greyscale_images.jpg "Grey Scale"
-[image5]: ./canny_edge_detection.jpg "Canny Edge Detection"
-[image6]: ./hough_transform.jpg "Hough Transform"
-[image7]: ./connecting_lines.jpg "Connecting Lines"
-[image8]: ./region_of_interest.jpg "Region Of Interest"
+[image1]: test_images_output/output/input.jpg "Input Image"
+[image2]: test_images_output/output/final_output.jpg "Final Output Image"
+[image3]: test_images_output/output/gaussian_blur.jpg "Gaussian Blur"
+[image4]: test_images_output/output/greyscale_images.jpg "Grey Scale"
+[image5]: test_images_output/output/canny_edge_detection.jpg "Canny Edge Detection"
+[image6]: test_images_output/output/hough_transform.jpg "Hough Transform"
+[image7]: test_images_output/output/connecting_lines.jpg "Connecting Lines"
+[image8]: test_images_output/output/region_of_interest.jpg "Region Of Interest"
 
 
 ---
